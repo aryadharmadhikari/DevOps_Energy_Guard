@@ -28,8 +28,8 @@ services:
       MODEL_PATH: ${MODEL_PATH:-/app/ml/models/model.pkl}
       ALERT_MERGE_MINUTES: ${ALERT_MERGE_MINUTES:-10}
       ML_SCORER: ${ML_SCORER:-stub}
-    expose:
-      - '8000'
+    ports:
+      - '8000:8000'
     depends_on:
       db:
         condition: service_healthy

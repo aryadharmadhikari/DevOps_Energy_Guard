@@ -23,7 +23,7 @@ curl -sS http://localhost:8000/api/v1/readings \
 ```
 
 The sample has a fixed timestamp. Live readings must use current UTC timestamps.
-The development overlay exposes backend port 8000 and database port 5432 on localhost.
+The development overlay exposes backend port 8000 and database port 5433 on localhost.
 The base stack keeps both internal. PostgreSQL data persists in a Docker volume.
 Startup runs database migrations. Keep exactly one backend worker for SSE and alert merging.
 
@@ -38,7 +38,7 @@ cp .env.example .env
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --wait db
 ```
 
-Change the database hostname in `.env` from `db` to `localhost`.
+For local Python, set `DATABASE_URL=postgresql://energyguard:energyguard@localhost:5433/energyguard` in `.env`.
 Set `NOTIFIER_URL=http://localhost:8100`, then start the backend:
 
 ```sh
