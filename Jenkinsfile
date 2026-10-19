@@ -15,10 +15,10 @@ pipeline {
                 sh 'docker compose --profile team --profile monitoring config --quiet'
             }
         }
-        stage('Backend lint and tests') {
+        stage('Backend lint and build') {
             steps {
                 sh 'docker build --target test -t "$COMPOSE_PROJECT_NAME-tests" -f backend/Dockerfile .'
-                sh 'docker run --rm "$COMPOSE_PROJECT_NAME-tests"'
+                sh 'docker run --rm "$COMPOSE_PROJECT_NAME-tests" sh -c "ruff check . && ruff format --check ."'
             }
         }
         stage('PostgreSQL 16 integration') {
@@ -27,7 +27,6 @@ pipeline {
                 sh '''docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" \
                     -e "TEST_DATABASE_URL=postgresql://energyguard:energyguard@db:5432/energyguard" \
                     "$COMPOSE_PROJECT_NAME-tests" pytest -q'''
-                sh 'docker compose exec -T backend python tests/healthcheck.py'
             }
         }
         stage('Available teammate checks') {

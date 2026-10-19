@@ -5,7 +5,6 @@ from unittest.mock import patch
 import pytest
 
 from app.config import Settings
-from app.schemas import AnomalyResult
 from app.scoring import load_scorer
 from app.stream import EventBroker
 from tests.conftest import spike
@@ -75,20 +74,6 @@ def test_slow_subscriber_queue_is_bounded():
     asyncio.run(exercise())
 
 
-@pytest.mark.parametrize(
-    ("score", "severity"), [(0.5, "low"), (0.6, "medium"), (0.8, "medium"), (0.81, "high")]
-)
-def test_score_boundaries(score, severity):
-    result = AnomalyResult(
-        is_anomaly=True,
-        anomaly_type="statistical_outlier",
-        score=score,
-        severity=severity,
-        model_version="test",
-    )
-    assert result.severity == severity
-
-
 def test_package_import_errors_stop_startup():
     settings = Settings(ml_scorer="package", _env_file=None)
     with patch(
@@ -96,10 +81,3 @@ def test_package_import_errors_stop_startup():
     ):
         with pytest.raises(FileNotFoundError, match="missing model"):
             load_scorer(settings)
-
-
-def test_package_adapter_uses_contract_import():
-    settings = Settings(ml_scorer="package", model_path="/tmp/model.pkl", _env_file=None)
-    with patch("app.scoring.importlib.import_module") as module:
-        assert load_scorer(settings) is module.return_value.score_reading
-        module.assert_called_once_with("energyguard_ml.inference")

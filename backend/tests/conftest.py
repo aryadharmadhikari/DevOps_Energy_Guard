@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -57,23 +58,7 @@ def client(app_factory):
 
 @pytest.fixture
 def reading():
-    return {
-        "meter_id": "M1",
-        "timestamp": "2026-10-19T14:00:05Z",
-        "total_power_w": 1840.5,
-        "voltage_v": 231.2,
-        "appliances_w": {
-            "ac": 1200.0,
-            "fridge": 150.0,
-            "geyser": 0.0,
-            "washing_machine": 0.0,
-            "lighting": 80.5,
-            "fan": 140.0,
-            "tv": 120.0,
-            "other": 150.0,
-        },
-        "sim_label": "normal",
-    }
+    return json.loads((BACKEND / "sample-reading.json").read_text())
 
 
 def spike(reading, timestamp="2026-10-19T14:00:05Z", power=4000.0):

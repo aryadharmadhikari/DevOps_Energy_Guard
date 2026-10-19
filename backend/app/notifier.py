@@ -23,4 +23,4 @@ class Notifier:
                 )
             response.raise_for_status()
         except (httpx.HTTPError, TimeoutError):
-            logger.warning("Notifier unavailable for saved alert %s", alert.alert_id, exc_info=True)
+            logger.warning("Notifier unavailable for saved alert %s", alert.alert_id)

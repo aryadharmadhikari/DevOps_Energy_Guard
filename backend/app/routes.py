@@ -28,12 +28,9 @@ router = APIRouter(
 
 
 @router.get("/health", response_model=Health)
-async def health(request: Request):
-    def check_database():
-        with request.app.state.database.engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-
-    await run_in_threadpool(check_database)
+def health(request: Request):
+    with request.app.state.database.engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
     return {"status": "ok"}
 
 
@@ -55,24 +52,24 @@ async def ingest_batch(
 
 
 @router.get("/meters", response_model=list[Meter])
-async def meters(request: Request):
-    return await run_in_threadpool(request.app.state.service.meters)
+def meters(request: Request):
+    return request.app.state.service.meters()
 
 
 @router.get("/readings/latest", response_model=Reading)
-async def latest(request: Request, meter_id: str):
-    return await run_in_threadpool(request.app.state.service.latest, meter_id)
+def latest(request: Request, meter_id: str):
+    return request.app.state.service.latest(meter_id)
 
 
 @router.get("/readings/history", response_model=History)
-async def history(request: Request, meter_id: str, range: str = "24h"):
+def history(request: Request, meter_id: str, range: str = "24h"):
     if range not in RANGES:
         raise ApiError(400, "invalid_range", "range must be 24h, 7d or 30d")
-    return await run_in_threadpool(request.app.state.history.get, meter_id, range)
+    return request.app.state.history.get(meter_id, range)
 
 
 @router.get("/alerts", response_model=list[Alert])
-async def alerts(
+def alerts(
     request: Request,
     meter_id: str | None = None,
     status: str | None = None,
@@ -80,7 +77,7 @@ async def alerts(
 ):
     if status is not None and status not in {"open", "acknowledged", "false_alarm"}:
         raise ApiError(400, "invalid_status", "status must be open, acknowledged or false_alarm")
-    return await run_in_threadpool(request.app.state.service.alerts, meter_id, status, limit)
+    return request.app.state.service.alerts(meter_id, status, limit)
 
 
 @router.patch("/alerts/{alert_id}", response_model=Alert)
@@ -89,13 +86,7 @@ async def update_alert(alert_id: int, update: AlertUpdate, request: Request):
         raise ApiError(400, "invalid_status", "status must be acknowledged or false_alarm")
     state = request.app.state
     async with state.write_lock:
-        alert = await run_in_threadpool(
-            state.service.update_alert,
-            alert_id,
-            update.status,
-            update.note,
-            "note" in update.model_fields_set,
-        )
+        alert = await run_in_threadpool(state.service.update_alert, alert_id, update)
         state.broker.publish(alert.meter_id, "alert", alert.model_dump(mode="json"))
     return alert
 

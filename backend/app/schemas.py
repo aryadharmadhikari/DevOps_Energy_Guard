@@ -66,17 +66,7 @@ class ReadingInput(ContractModel):
     total_power_w: Power
     voltage_v: Power | None
     appliances_w: Appliances
-    sim_label: (
-        Literal[
-            "normal",
-            "none",
-            "baseload_leakage",
-            "high_load_spike",
-            "voltage_fluctuation",
-            "statistical_outlier",
-        ]
-        | None
-    ) = None
+    sim_label: Literal["normal"] | AnomalyType | None = None
 
     @model_validator(mode="after")
     def validate_total(self):

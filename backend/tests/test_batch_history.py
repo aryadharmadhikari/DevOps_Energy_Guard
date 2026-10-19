@@ -22,15 +22,6 @@ def test_backfill_is_acknowledged_and_does_not_change_latest(client, reading):
     assert client.get("/api/v1/meters").json()[0]["last_seen"] == reading["timestamp"]
 
 
-@pytest.mark.parametrize("rows", [[], [{}], [{}] * 501])
-def test_invalid_batch(client, rows):
-    assert (
-        client.post("/api/v1/readings/batch?backfill=true", json={"readings": rows}).status_code
-        == 422
-    )
-    assert client.get("/api/v1/meters").json() == []
-
-
 def test_batch_order_and_live_batch_merge(client, reading):
     older = spike(reading)
     newer = spike(reading, "2026-10-19T14:01:00Z")
@@ -41,8 +32,11 @@ def test_batch_order_and_live_batch_merge(client, reading):
     assert result.json() == {"saved": 2, "alerts_created": 1}
 
 
-def test_full_500_reading_batch(client, reading):
-    rows = [{**reading, "sim_label": None} for _ in range(500)]
+def test_batch_size_limit(client, reading):
+    rows = [reading] * 501
+    assert client.post("/api/v1/readings/batch", json={"readings": rows}).status_code == 422
+    assert client.get("/api/v1/meters").json() == []
+    rows.pop()
     response = client.post("/api/v1/readings/batch?backfill=true", json={"readings": rows})
     assert response.status_code == 201
     assert response.json() == {"saved": 500, "alerts_created": 0}

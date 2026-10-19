@@ -64,7 +64,7 @@ def test_notify_only_new_live_alerts_and_survive_notifier_failure(app_factory, r
 
 
 def test_score_and_severity_keep_maximum(app_factory, reading):
-    results = iter([(0.7, "medium"), (0.9, "high"), (0.5, "low")])
+    results = iter([(0.5, "low"), (0.6, "medium"), (0.8, "medium"), (0.81, "high"), (0.5, "low")])
 
     def scorer(reading, recent=None):
         score, severity = next(results)
@@ -77,13 +77,14 @@ def test_score_and_severity_keep_maximum(app_factory, reading):
         }
 
     with TestClient(app_factory(scorer=scorer)) as client:
-        for minute in range(3):
-            client.post(
+        for minute in range(5):
+            response = client.post(
                 "/api/v1/readings",
                 json={
                     **reading,
                     "timestamp": f"2026-10-19T14:0{minute}:00Z",
                 },
             )
+            assert response.status_code == 201
         alert = client.get("/api/v1/alerts").json()[0]
-        assert (alert["score"], alert["severity"]) == (0.9, "high")
+        assert (alert["score"], alert["severity"]) == (0.81, "high")

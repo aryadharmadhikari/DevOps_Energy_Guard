@@ -7,7 +7,15 @@ from sqlalchemy import select
 from app.config import Settings
 from app.database import AlertRow, Database, MeterRow, ReadingRow
 from app.errors import ApiError
-from app.schemas import Alert, AnomalyResult, IngestResult, Meter, Reading, ReadingInput
+from app.schemas import (
+    Alert,
+    AlertUpdate,
+    AnomalyResult,
+    IngestResult,
+    Meter,
+    Reading,
+    ReadingInput,
+)
 
 
 @dataclass
@@ -77,14 +85,14 @@ class ReadingService:
             ).all()
             return [Alert.model_validate(row) for row in rows]
 
-    def update_alert(self, alert_id: int, status: str, note: str | None, set_note: bool) -> Alert:
+    def update_alert(self, alert_id: int, update: AlertUpdate) -> Alert:
         with self.database.sessions.begin() as session:
             row = session.get(AlertRow, alert_id)
             if row is None:
                 raise ApiError(404, "alert_not_found", f"No alert with id {alert_id}")
-            row.status = status
-            if set_note:
-                row.note = note
+            row.status = update.status
+            if "note" in update.model_fields_set:
+                row.note = update.note
             row.updated_at = datetime.now(UTC)
             session.flush()
             return Alert.model_validate(row)
@@ -129,21 +137,21 @@ class ReadingService:
         if not anomaly.is_anomaly:
             return None, False
         window = timedelta(minutes=self.settings.alert_merge_minutes)
-        row = session.scalar(
-            select(AlertRow)
-            .where(
-                AlertRow.meter_id == reading.meter_id,
-                AlertRow.anomaly_type == anomaly.anomaly_type,
-                AlertRow.status == "open",
-                AlertRow.last_seen_at >= reading.timestamp - window,
-                AlertRow.last_seen_at <= reading.timestamp,
+        # Backfill cannot merge into acknowledged alerts or change a live incident.
+        row = None
+        if not backfill:
+            row = session.scalar(
+                select(AlertRow)
+                .where(
+                    AlertRow.meter_id == reading.meter_id,
+                    AlertRow.anomaly_type == anomaly.anomaly_type,
+                    AlertRow.status == "open",
+                    AlertRow.last_seen_at >= reading.timestamp - window,
+                    AlertRow.last_seen_at <= reading.timestamp,
+                )
+                .order_by(AlertRow.last_seen_at.desc(), AlertRow.alert_id.desc())
+                .limit(1)
             )
-            .order_by(AlertRow.last_seen_at.desc(), AlertRow.alert_id.desc())
-            .limit(1)
-        )
-        # Backfill must not change a live incident or merge into an acknowledged alert.
-        if backfill:
-            row = None
         if row is None:
             row = self._new_alert(reading, anomaly, backfill)
             session.add(row)
