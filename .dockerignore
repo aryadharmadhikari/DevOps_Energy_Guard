@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/node_modules
+**/dist
+**/data
+.aws
+.idea
+*.tfstate*
+*.tfvars
+!ml/models/*.pkl
+!ml/models/*.joblib
