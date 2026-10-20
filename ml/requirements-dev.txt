@@ -1,0 +1,6 @@
+-e .
+pandas
+matplotlib
+jupyter
+ipykernel
+pytest
