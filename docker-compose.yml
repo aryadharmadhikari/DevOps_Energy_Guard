@@ -84,14 +84,15 @@ services:
       - '8100'
     restart: unless-stopped
 
+  
   prometheus:
     profiles: [monitoring]
     image: prom/prometheus:v2.55.1
+    ports:
+      - "9090:9090"
     volumes:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    expose:
-      - '9090'
     depends_on:
       backend:
         condition: service_healthy
