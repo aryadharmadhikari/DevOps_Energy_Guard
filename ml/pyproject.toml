@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "energyguard-ml"
+version = "1.0.0"
+description = "EnergyGuard anomaly detection: score_reading() per Common Baseline v1.0 section 6.1"
+requires-python = ">=3.12"
+# scikit-learn MUST match the backend's version, or models/model.pkl will not load.
+dependencies = [
+    "scikit-learn==1.5.2",
+    "joblib",
+    "numpy",
+    "pydantic>=2",
+]
+
+[project.optional-dependencies]
+dev = ["pandas", "matplotlib", "jupyter", "ipykernel", "pytest"]
+
+[tool.setuptools.packages.find]
+include = ["energyguard_ml*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
