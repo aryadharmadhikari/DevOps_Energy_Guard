@@ -137,21 +137,24 @@ class ReadingService:
         if not anomaly.is_anomaly:
             return None, False
         window = timedelta(minutes=self.settings.alert_merge_minutes)
-        # Backfill cannot merge into acknowledged alerts or change a live incident.
-        row = None
-        if not backfill:
-            row = session.scalar(
-                select(AlertRow)
-                .where(
-                    AlertRow.meter_id == reading.meter_id,
-                    AlertRow.anomaly_type == anomaly.anomaly_type,
-                    AlertRow.status == "open",
-                    AlertRow.last_seen_at >= reading.timestamp - window,
-                    AlertRow.last_seen_at <= reading.timestamp,
-                )
-                .order_by(AlertRow.last_seen_at.desc(), AlertRow.alert_id.desc())
-                .limit(1)
+        # Live readings merge into open alerts. Backfill follows the same merge rule (contract
+        # section 5) but only into earlier backfill alerts, so it never changes a live incident.
+        if backfill:
+            same_kind = (AlertRow.status == "acknowledged", AlertRow.note == "backfill")
+        else:
+            same_kind = (AlertRow.status == "open",)
+        row = session.scalar(
+            select(AlertRow)
+            .where(
+                AlertRow.meter_id == reading.meter_id,
+                AlertRow.anomaly_type == anomaly.anomaly_type,
+                *same_kind,
+                AlertRow.last_seen_at >= reading.timestamp - window,
+                AlertRow.last_seen_at <= reading.timestamp,
             )
+            .order_by(AlertRow.last_seen_at.desc(), AlertRow.alert_id.desc())
+            .limit(1)
+        )
         if row is None:
             row = self._new_alert(reading, anomaly, backfill)
             session.add(row)
