@@ -3,10 +3,27 @@
 Electricity monitoring and anomaly detection for DBIT T.E. IT, Semester V, 25IT5CEP3.
 Smart plugs or sub-meters supply appliance readings. The simulator represents these devices.
 
-Arya's backend, database, Compose stack, and Jenkins pipeline are implemented.
-Other service folders are placeholders for their owners. [CONTRACT.md](CONTRACT.md) defines the shared interfaces.
+Backend, database, dashboard, simulator, anomaly model, Compose stack and Jenkins pipeline are implemented.
+The notifier is not built yet. [CONTRACT.md](CONTRACT.md) defines the shared interfaces.
 
-## Run with Docker
+## Run everything
+
+Start Docker, then from the repository root:
+
+```sh
+cp .env.example .env
+docker compose --profile team up --build -d --wait
+```
+
+Open the dashboard at [localhost:3001](http://localhost:3001).
+
+- The backend image trains the anomaly model during the build (about a minute), so no model file is needed.
+- On an empty database the simulator first sends 30 days of history (one reading per minute per meter),
+  then switches to live readings every 5 seconds. History fills in on the dashboard as it arrives.
+- Show an alert live: `docker compose exec simulator python simulator.py --inject high_load_spike --meter M1 --minutes 3`
+- Start again from nothing: `docker compose --profile team down -v`, then the `up` command above.
+
+## Run the backend only
 
 Start Docker, then run:
 

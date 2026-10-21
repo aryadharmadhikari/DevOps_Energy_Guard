@@ -23,9 +23,9 @@ Supply `ml/pyproject.toml`, `ml/energyguard_ml/inference.py`, and `ml/models/mod
 Match backend pins: scikit-learn 1.5.2 and joblib 1.4.2. Model artifacts stay outside Git.
 The Dockerfile installs the package when present. Locally, use `uv pip install --python .venv/bin/python ./ml`.
 
-Set `ML_SCORER=package` and restart. `MODEL_PATH` defaults to `/app/ml/models/model.pkl` inside Docker.
+`ML_SCORER=package` is the default. The backend image trains `model.pkl` during the build (simulator history, then `energyguard_ml.training`), so no model file is kept in Git. `MODEL_PATH` defaults to `/app/ml/models/model.pkl` inside Docker.
 For local Python, set an absolute artifact path. Package or model import failures stop startup.
-The default `ML_SCORER=stub` uses the contract's temporary rule: power above 3000 W is anomalous.
+`ML_SCORER=stub` switches back to the contract's temporary rule: power above 3000 W is anomalous.
 
 The adapter passes the current reading and up to 60 earlier readings from the same meter, oldest first.
 Both inputs exclude `sim_label`. Results must match AnomalyResult, including score and severity boundaries.
@@ -59,7 +59,7 @@ Frontend, simulator, and notifier images build when their Dockerfiles exist.
 
 ## Contract details for team review
 
-- Acknowledged alerts never merge. Each abnormal backfill reading creates an acknowledged alert with note `backfill`, without modifying live incidents.
+- Live readings merge only into open alerts. Backfill follows the same merge rule, but only into earlier backfill alerts (acknowledged, note `backfill`), so it never modifies live incidents.
 - Energy estimates use mean sampled power times bucket duration, divided by 3,600,000. Appliance energy uses the same calculation.
 - Buckets align to UTC boundaries, include the current partial bucket, and use elapsed duration for that partial bucket.
 - Buckets without readings contain null values. Alerts count by their first reading's timestamp.

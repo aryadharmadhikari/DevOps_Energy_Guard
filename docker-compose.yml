@@ -27,7 +27,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       MODEL_PATH: ${MODEL_PATH:-/app/ml/models/model.pkl}
       ALERT_MERGE_MINUTES: ${ALERT_MERGE_MINUTES:-10}
-      ML_SCORER: ${ML_SCORER:-stub}
+      ML_SCORER: ${ML_SCORER:-package}
     ports:
       - '8000:8000'
     depends_on:
@@ -70,8 +70,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # Not built yet. Kept in its own profile so `--profile team` runs without it;
+  # the backend logs and carries on when the notifier is missing (contract 6.2).
   notifier:
-    profiles: [team]
+    profiles: [notify]
     build: ./notifier
     environment:
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
