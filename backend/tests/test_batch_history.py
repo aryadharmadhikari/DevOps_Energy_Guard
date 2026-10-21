@@ -11,10 +11,13 @@ def test_backfill_is_acknowledged_and_does_not_change_latest(client, reading):
     old = spike(reading, "2026-10-18T14:00:00Z")
     response = client.post("/api/v1/readings/batch?backfill=true", json={"readings": [old, old]})
     assert response.status_code == 201
-    assert response.json() == {"saved": 2, "alerts_created": 2}
-    for alert in client.get("/api/v1/alerts").json():
-        assert alert["status"] == "acknowledged"
-        assert alert["note"] == "backfill"
+    # Backfill follows the merge rule: both abnormal readings land in one alert.
+    assert response.json() == {"saved": 2, "alerts_created": 1}
+    alerts = client.get("/api/v1/alerts").json()
+    assert len(alerts) == 1
+    assert alerts[0]["status"] == "acknowledged"
+    assert alerts[0]["note"] == "backfill"
+    assert alerts[0]["occurrence_count"] == 2
     assert (
         client.get("/api/v1/readings/latest?meter_id=M1").json()["timestamp"]
         == reading["timestamp"]
