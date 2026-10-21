@@ -1,0 +1,25 @@
+# Jenkins on this laptop. From the repository root:
+#   docker compose -f infra/jenkins/docker-compose.yml --env-file .env up -d --build
+# Then open http://localhost:8080 (user admin, password JENKINS_ADMIN_PASSWORD from .env).
+name: energyguard-jenkins
+
+services:
+  jenkins:
+    build: .
+    # root so the pipeline can use the host's Docker socket; Jenkins is only reachable from this laptop.
+    user: root
+    ports:
+      - '127.0.0.1:8080:8080'
+    environment:
+      JENKINS_ADMIN_PASSWORD: ${JENKINS_ADMIN_PASSWORD:-admin}
+      # CD target: the server's address from `terraform output -raw public_ip`. Empty = no deploy stage.
+      DEPLOY_HOST: ${DEPLOY_HOST:-}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      # The SSH key Terraform writes, for the deploy stage.
+      - ../terraform:/deploy:ro
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:

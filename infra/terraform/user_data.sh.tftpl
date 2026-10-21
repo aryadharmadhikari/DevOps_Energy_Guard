@@ -1,0 +1,25 @@
+#!/bin/bash
+# First boot: Docker, swap, the repository, then the whole stack. Log: /var/log/energyguard-setup.log
+set -euxo pipefail
+exec > /var/log/energyguard-setup.log 2>&1
+
+# 2 GB swap: building images and training the model need more than the RAM alone on small servers.
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+apt-get update
+apt-get install -y docker.io docker-compose-v2 git
+systemctl enable --now docker
+usermod -aG docker ubuntu
+
+git clone --branch ${branch} ${repo_url} /opt/energyguard
+chown -R ubuntu:ubuntu /opt/energyguard
+cd /opt/energyguard
+cp .env.example .env
+sed -i 's/^GRAFANA_ADMIN_PASSWORD=.*/GRAFANA_ADMIN_PASSWORD=${grafana_password}/' .env
+
+sudo -u ubuntu docker compose -f docker-compose.yml -f docker-compose.aws.yml \
+  --profile team --profile monitoring up -d --build
+echo "EnergyGuard setup finished"

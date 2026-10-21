@@ -23,6 +23,8 @@ Open the dashboard at [localhost:3001](http://localhost:3001).
 - Show an alert live: `docker compose exec simulator python simulator.py --inject high_load_spike --meter M1 --minutes 3`
 - Start again from nothing: `docker compose --profile team down -v`, then the `up` command above.
 
+Monitoring, Jenkins, the AWS server and deploys: see [infra/README.md](infra/README.md).
+
 ## Run the backend only
 
 Start Docker, then run:
