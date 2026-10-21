@@ -293,6 +293,44 @@ def post(client, path, body):
         return response.json()
 
 
+def post_batch(client, batch):
+    """Send one backfill batch exactly once. A small server can take a while to score 500
+    readings, so the wait is long. If the connection still fails, the batch may have been
+    saved anyway, so check the newest reading of each meter before sending it again."""
+    while True:
+        try:
+            response = client.post(
+                f"{BACKEND_URL}/readings/batch?backfill=true", json={"readings": batch}, timeout=600
+            )
+        except httpx.RequestError as exc:
+            print(f"Backend unavailable ({exc.__class__.__name__}). Checking before retrying ...", flush=True)
+            time.sleep(RETRY_SECONDS * 2)
+            if batch_saved(client, batch):
+                return {"alerts_created": 0}
+            continue
+        if response.status_code >= 500:
+            print(f"Backend returned HTTP {response.status_code}. Retrying in {RETRY_SECONDS} s", flush=True)
+            time.sleep(RETRY_SECONDS)
+            continue
+        if response.status_code >= 400:
+            print(f"Backend rejected a batch: HTTP {response.status_code} {response.text}", flush=True)
+            return None
+        return response.json()
+
+
+def batch_saved(client, batch):
+    """True when every meter's newest saved reading is at or after its last one in the batch."""
+    last = {r["meter_id"]: r["timestamp"] for r in batch}  # batches are oldest first
+    for meter_id, timestamp in last.items():
+        try:
+            response = client.get(f"{BACKEND_URL}/readings/latest", params={"meter_id": meter_id})
+        except httpx.RequestError:
+            return False
+        if response.status_code != 200 or response.json()["timestamp"] < timestamp:
+            return False
+    return True
+
+
 def backend_has_meters(client):
     while True:
         try:
@@ -314,7 +352,7 @@ def backfill(client, args, days):
         if not batch:
             return
         if not args.no_send:
-            result = post(client, "/readings/batch?backfill=true", {"readings": batch})
+            result = post_batch(client, batch)
             if result is None:
                 raise SystemExit("Backfill stopped: the backend rejected a batch (see above).")
             alerts += result["alerts_created"]

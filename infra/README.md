@@ -7,7 +7,7 @@ Everything here is code: monitoring, CI, the AWS server and deploys.
 | `prometheus/` | Scrapes `backend:8000/metrics` every 15 s, keeps 7 days | Compose profile `monitoring` |
 | `grafana/` | Data source and the EnergyGuard dashboard, loaded at start-up | Compose profile `monitoring`, port 3000 |
 | `jenkins/` | Jenkins configured from `casc.yaml`, runs the root `Jenkinsfile` on every branch | Your laptop, port 8080 |
-| `terraform/` | One EC2 server that runs the whole stack | AWS, `ap-south-1` |
+| `terraform/` | One EC2 server that runs the whole stack | AWS, `ap-southeast-2` (Sydney) |
 | `deploy.sh` | CD: updates the server to the latest `main` | Called by Jenkins |
 
 ## Monitoring (Grafana)
@@ -34,7 +34,7 @@ Each build: validate Compose, backend lint and tests (also against PostgreSQL 16
 
 ## The AWS server (Terraform)
 
-Needs an AWS user with `AmazonEC2FullAccess`, configured with `aws configure` (region `ap-south-1`).
+Needs an AWS user with `AmazonEC2FullAccess`, configured with `aws configure` (region `ap-southeast-2`, the only region the team account allows).
 
 ```sh
 cd infra/terraform

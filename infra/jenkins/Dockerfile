@@ -2,7 +2,8 @@
 # It drives the host's Docker through the mounted socket, so it needs the Docker CLI and Compose.
 FROM docker:29.8.2-cli AS docker-cli
 FROM docker/compose-bin:v5.5.1 AS compose
-FROM docker/buildx-bin:v0.37 AS buildx
+# Release tags have no "v"; the v-tags report a commit instead of a version, which Compose rejects.
+FROM docker/buildx-bin:0.37.2 AS buildx
 
 FROM jenkins/jenkins:2.580.1-lts-jdk21
 COPY --from=docker-cli /usr/local/bin/docker /usr/local/bin/docker
