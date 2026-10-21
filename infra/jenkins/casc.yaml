@@ -1,0 +1,36 @@
+# Jenkins configuration as code. Restart Jenkins to apply changes.
+jenkins:
+  systemMessage: "EnergyGuard CI. Configured from infra/jenkins/casc.yaml."
+  # One build at a time: builds start whole stacks, and a laptop has one Docker engine.
+  numExecutors: 1
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: admin
+          password: "${JENKINS_ADMIN_PASSWORD:-admin}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: true
+unclassified:
+  location:
+    url: "http://localhost:8080/"
+jobs:
+  # Every branch of the GitHub repo gets the Jenkinsfile pipeline. GitHub can't reach a
+  # laptop with webhooks, so Jenkins checks the repo for new commits every 2 minutes.
+  - script: >
+      multibranchPipelineJob('energyguard') {
+        displayName('EnergyGuard')
+        branchSources {
+          git {
+            id('energyguard-github')
+            remote('https://github.com/aryadharmadhikari/DevOps_Energy_Guard.git')
+          }
+        }
+        triggers {
+          periodicFolderTrigger { interval('2m') }
+        }
+        orphanedItemStrategy {
+          discardOldItems { numToKeep(10) }
+        }
+      }

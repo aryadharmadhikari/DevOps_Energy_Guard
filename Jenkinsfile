@@ -57,6 +57,18 @@ pipeline {
                     done'''
             }
         }
+        stage('Deploy to AWS') {
+            // CD: only main, and only once the server exists (DEPLOY_HOST comes from terraform output).
+            when {
+                allOf {
+                    branch 'main'
+                    expression { env.DEPLOY_HOST?.trim() }
+                }
+            }
+            steps {
+                sh 'sh infra/deploy.sh "$DEPLOY_HOST" /deploy/energyguard.pem'
+            }
+        }
     }
     post {
         always {

@@ -1,7 +1,7 @@
 # Publish backend and database only on this laptop.
 services:
   backend:
-    ports: !override
+    ports:
       - '127.0.0.1:8000:8000'
   db:
     ports:

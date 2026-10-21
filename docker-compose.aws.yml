@@ -1,0 +1,5 @@
+# AWS overlay: the dashboard on port 80 (contract section 2). Used by infra/terraform and CD.
+services:
+  frontend:
+    ports: !override
+      - '80:80'
